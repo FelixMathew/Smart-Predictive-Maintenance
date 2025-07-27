@@ -1,4 +1,7 @@
 # 🛠️ Smart Predictive Maintenance for Industrial Equipment
+🔗 **Live App**: [Heart Failure Risk Predictor (Streamlit)](https://smart-predictive-maintenance-hwh4cjpxsrajfqnpvksgdr.streamlit.app/)
+
+----
 
 By **Felix Mathew** (RA2311028020016)  
 Member of **SRM Institute of Science and Technology**
