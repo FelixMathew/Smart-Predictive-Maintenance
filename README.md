@@ -1,5 +1,5 @@
 # 🛠️ Smart Predictive Maintenance for Industrial Equipment
-🔗 **Live App**: [Heart Failure Risk Predictor (Streamlit)](https://smart-predictive-maintenance-hwh4cjpxsrajfqnpvksgdr.streamlit.app/)
+🔗 **Live App**: [Advanced IoT Big Data Project: Smart Predictive Maintenance for Industrial Equipment (Streamlit)](https://smart-predictive-maintenance-hwh4cjpxsrajfqnpvksgdr.streamlit.app/)
 
 ----
 
