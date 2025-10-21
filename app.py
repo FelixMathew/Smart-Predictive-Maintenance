@@ -11,7 +11,6 @@ st.set_page_config(
 )
 
 # --- Load the lightweight scikit-learn model and scaler ---
-# This uses very little memory and is perfect for hosting.
 try:
     model = joblib.load('model/failure_predictor.pkl')
     scaler = joblib.load('model/scaler.pkl')
@@ -29,16 +28,16 @@ st.markdown("Predict **machine failure** by providing real-time sensor data.")
 # --- Sidebar for User Input ---
 st.sidebar.header("Input Sensor Data")
 
-# NOTE: This model was trained on fewer features. We match the inputs to the model.
-air_temp = st.sidebar.slider('Air temperature [K]', 295.0, 305.0, 300.1, 0.1)
-rpm = st.sidebar.slider("Rotational Speed [rpm]", 1000.0, 3000.0, 1500.0)
-torque = st.sidebar.slider("Torque [Nm]", 0.0, 100.0, 40.0)
+# NOTE: The loaded .pkl model was trained on ONLY these 3 features.
 tool_wear = st.sidebar.slider("Tool Wear [min]", 0.0, 250.0, 50.0)
+torque = st.sidebar.slider("Torque [Nm]", 0.0, 100.0, 40.0)
+rot_speed = st.sidebar.slider("Rotational Speed [rpm]", 1000.0, 3000.0, 1500.0)
+
 
 # --- Prediction Logic ---
 if st.sidebar.button("Predict Failure"):
-    # Prepare input data in the same way the model was trained
-    input_data = np.array([[air_temp, rpm, torque, tool_wear]])
+    # Prepare input data with the 3 features in the correct order
+    input_data = np.array([[tool_wear, torque, rot_speed]])
     input_scaled = scaler.transform(input_data)
 
     # Make prediction and get probability
