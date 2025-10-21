@@ -1,4 +1,5 @@
 # 🛠️ Smart Predictive Maintenance for Industrial Equipment
+**WEBSITE**: [CLICK HERE](https://felixmathew.github.io/Smart-Predictive-Maintenance/)
 🔗 **Live App**: [Advanced IoT Big Data Project: Smart Predictive Maintenance for Industrial Equipment (Streamlit)](https://smart-predictive-maintenance-sdxrkuxnhzxywrx3bmgncb.streamlit.app/)
 
 ----
