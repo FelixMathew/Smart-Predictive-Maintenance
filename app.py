@@ -1,38 +1,94 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
+from pyspark.sql import SparkSession
+from pyspark.ml.classification import RandomForestClassificationModel
+from pyspark.ml.feature import VectorAssembler
+from pyspark.sql.types import StructType, StructField, DoubleType, IntegerType
 
-# Load the trained model and scaler
-model = joblib.load('model/failure_predictor.pkl')
-scaler = joblib.load('model/scaler.pkl')
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="Predictive Maintenance Dashboard",
+    page_icon="🔧",
+    layout="wide"
+)
 
-# Streamlit app title
-st.title("🔧 Smart Predictive Maintenance Dashboard")
-st.markdown("Predict **machine failure** using Tool Wear, Torque, and Rotational Speed.")
+# --- Spark Session and Model Loading (Cached to run only once) ---
+# This is a crucial step for performance in a web app
+@st.cache_resource
+def load_spark_model():
+    """
+    Initializes a Spark session and loads the pre-trained PySpark RandomForest model.
+    """
+    spark = SparkSession.builder \
+        .appName("PredictiveMaintenanceWebApp") \
+        .getOrCreate()
+    
+    # Path to the saved PySpark model
+    model_path = "model/pyspark_rf_model"
+    model = RandomForestClassificationModel.load(model_path)
+    return spark, model
 
-# Sidebar for input
-st.sidebar.header("🔍 Input Sensor Data")
+# Load the resources
+try:
+    spark, model = load_spark_model()
+    st.success("PySpark model loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading Spark model: {e}")
+    st.stop()
 
-tool_wear = st.sidebar.slider("Tool Wear [min]", 0.0, 250.0, 50.0)
-torque = st.sidebar.slider("Torque [Nm]", 0.0, 100.0, 40.0)
-rot_speed = st.sidebar.slider("Rotational Speed [rpm]", 1000.0, 3000.0, 1500.0)
 
-# Prepare input for model
-input_data = np.array([[tool_wear, torque, rot_speed]])
-input_scaled = scaler.transform(input_data)
+# --- App Title and Description ---
+st.title("🔧 Smart Predictive Maintenance Dashboard (PySpark)")
+st.markdown("Predict **machine failure** by providing real-time sensor data. This app uses a RandomForest model trained with PySpark.")
 
-# Prediction
-prediction = model.predict(input_scaled)[0]
-probability = model.predict_proba(input_scaled)[0][1]
+# --- Sidebar for User Input ---
+st.sidebar.header("Input Sensor Data")
 
-# Output
-st.subheader("🧠 Prediction Result")
-if prediction == 1:
-    st.error(f"⚠️ Machine Failure Likely (Risk Score: {probability:.2f})")
-else:
-    st.success(f"✅ No Failure Predicted (Confidence: {1 - probability:.2f})")
+def user_inputs():
+    """Creates sliders in the sidebar for all features the model was trained on."""
+    air_temp = st.sidebar.slider('Air temperature [K]', 295.0, 305.0, 300.1, 0.1)
+    process_temp = st.sidebar.slider('Process temperature [K]', 305.0, 315.0, 310.2, 0.1)
+    rpm = st.sidebar.slider('Rotational Speed [rpm]', 1100, 3000, 1500)
+    torque = st.sidebar.slider('Torque [Nm]', 0.0, 80.0, 40.5, 0.1)
+    tool_wear = st.sidebar.slider('Tool Wear [min]', 0, 260, 55)
+    
+    data = {
+        'Air temperature [K]': air_temp,
+        'Process temperature [K]': process_temp,
+        'Rotational speed [rpm]': rpm,
+        'Torque [Nm]': torque,
+        'Tool wear [min]': tool_wear
+    }
+    return data
 
-# Extra info
-st.markdown("---")
-st.markdown("Model trained on **AI4I 2020 Predictive Maintenance Dataset** using Random Forest Classifier.")
+input_data = user_inputs()
+
+# --- Prediction Logic ---
+# A button to trigger the prediction
+if st.sidebar.button("Predict Failure"):
+    # 1. Create a PySpark DataFrame from the user's input
+    schema = StructType([
+        StructField("Air temperature [K]", DoubleType(), True),
+        StructField("Process temperature [K]", DoubleType(), True),
+        StructField("Rotational speed [rpm]", IntegerType(), True),
+        StructField("Torque [Nm]", DoubleType(), True),
+        StructField("Tool wear [min]", IntegerType(), True),
+    ])
+    new_df = spark.createDataFrame([list(input_data.values())], schema)
+
+    # 2. Assemble features using the same process as in training
+    features_list = list(input_data.keys())
+    assembler = VectorAssembler(inputCols=features_list, outputCol="features")
+    prepared_df = assembler.transform(new_df)
+
+    # 3. Make prediction using the loaded PySpark model
+    prediction = model.transform(prepared_df)
+    result = prediction.select("prediction", "probability").collect()[0]
+    failure_prediction = result['prediction']
+    confidence_score = result['probability'][int(failure_prediction)]
+
+    # 4. Display the result
+    st.subheader("🧠 Prediction Result")
+    if failure_prediction == 1.0:
+        st.error(f"🚨 High Risk: Machine Failure Predicted! (Confidence: {confidence_score:.2%})", icon="🚨")
+    else:
+        st.success(f"✅ Low Risk: No Failure Predicted. (Confidence: {confidence_score:.2%})", icon="✅")
