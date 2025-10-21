@@ -8,7 +8,7 @@ Member of **SRM Institute of Science and Technology**
 
 ---
 
-## 📌 Project Overview
+#📌 Project Overview
 
 A machine learning-driven predictive maintenance system designed to detect potential machine failures in industrial environments using key parameters like tool wear, torque, and rotational speed. This project uses real-time simulation, data preprocessing, and model training to build a failure prediction pipeline.
 
@@ -47,7 +47,7 @@ To reduce unplanned downtime and maintenance costs by predicting failures **befo
 
 ---
 
-## 🧪 Project Components
+ 🧪 Project Components
 
 🔹 1. PySpark Training & Prediction Pipeline
 
@@ -72,30 +72,22 @@ Predicts failure probabilities for new batch data
 4. Displays prediction result instantly on the web interface.
 
 ---
-🚀 How to Run Locally
+ # 🚀 How to Run Locally
 🔸 Step 1: Run the PySpark Training Pipeline
-
 Prerequisites
-
 Java JDK 11 or 17
-
 Hadoop WinUtils configured (HADOOP_HOME set)
-
-Commands
-
-# Activate virtual environment
+Commands:
+Activate virtual environment
 .\venv\Scripts\Activate.ps1
-
-# Run training script
+Run training script
 python scripts/pyspark_train_model.py
 
 🔸 Step 2: Run the Streamlit Web App
 
-Commands
-
-# Activate virtual environment
+Commands:
+Activate virtual environment
 .\venv\Scripts\Activate.ps1
-
-# Launch Streamlit app
+Launch Streamlit app
 streamlit run app.py
 ---
