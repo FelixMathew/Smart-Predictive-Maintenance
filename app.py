@@ -15,14 +15,17 @@ st.set_page_config(
 @st.cache_resource
 def load_spark_model():
     """
-    Initializes a Spark session with limited memory for deployment and loads the model.
+    Initializes a Spark session with an ultra-lightweight configuration for deployment.
     """
-    # --- THIS IS THE CRITICAL FIX ---
-    # We configure Spark to use less memory to fit into Streamlit's free tier.
-    # We also remove the Windows-specific hadoop.home.dir configuration.
+    # --- THIS IS THE FINAL, MOST AGGRESSIVE FIX ---
+    # We are forcing Spark to use only one core and the absolute minimum memory.
     spark = SparkSession.builder \
         .appName("PredictiveMaintenanceWebApp") \
-        .config("spark.driver.memory", "1g") \
+        .master("local[1]") \
+        .config("spark.driver.memory", "768m") \
+        .config("spark.driver.memoryOverhead", "256m") \
+        .config("spark.executor.memory", "768m") \
+        .config("spark.sql.shuffle.partitions", "1") \
         .getOrCreate()
     
     model_path = "model/pyspark_rf_model"
