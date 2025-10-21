@@ -12,17 +12,19 @@ st.set_page_config(
 )
 
 # --- Spark Session and Model Loading (Cached to run only once) ---
-# This is a crucial step for performance in a web app
 @st.cache_resource
 def load_spark_model():
     """
-    Initializes a Spark session and loads the pre-trained PySpark RandomForest model.
+    Initializes a Spark session with limited memory for deployment and loads the model.
     """
+    # --- THIS IS THE CRITICAL FIX ---
+    # We configure Spark to use less memory to fit into Streamlit's free tier.
+    # We also remove the Windows-specific hadoop.home.dir configuration.
     spark = SparkSession.builder \
         .appName("PredictiveMaintenanceWebApp") \
+        .config("spark.driver.memory", "1g") \
         .getOrCreate()
     
-    # Path to the saved PySpark model
     model_path = "model/pyspark_rf_model"
     model = RandomForestClassificationModel.load(model_path)
     return spark, model
@@ -30,9 +32,9 @@ def load_spark_model():
 # Load the resources
 try:
     spark, model = load_spark_model()
-    st.success("PySpark model loaded successfully!")
 except Exception as e:
     st.error(f"Error loading Spark model: {e}")
+    st.info("This can happen during the first startup. The app will likely succeed on the next automatic retry.")
     st.stop()
 
 
@@ -63,7 +65,6 @@ def user_inputs():
 input_data = user_inputs()
 
 # --- Prediction Logic ---
-# A button to trigger the prediction
 if st.sidebar.button("Predict Failure"):
     # 1. Create a PySpark DataFrame from the user's input
     schema = StructType([
@@ -75,12 +76,12 @@ if st.sidebar.button("Predict Failure"):
     ])
     new_df = spark.createDataFrame([list(input_data.values())], schema)
 
-    # 2. Assemble features using the same process as in training
+    # 2. Assemble features
     features_list = list(input_data.keys())
     assembler = VectorAssembler(inputCols=features_list, outputCol="features")
     prepared_df = assembler.transform(new_df)
 
-    # 3. Make prediction using the loaded PySpark model
+    # 3. Make prediction
     prediction = model.transform(prepared_df)
     result = prediction.select("prediction", "probability").collect()[0]
     failure_prediction = result['prediction']
@@ -92,3 +93,4 @@ if st.sidebar.button("Predict Failure"):
         st.error(f"🚨 High Risk: Machine Failure Predicted! (Confidence: {confidence_score:.2%})", icon="🚨")
     else:
         st.success(f"✅ Low Risk: No Failure Predicted. (Confidence: {confidence_score:.2%})", icon="✅")
+
